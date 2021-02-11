@@ -5,5 +5,5 @@ class Keyboard:
         pass
 
     def get_keyboard(self, path):
-        with open(f'keyboard/{path}.json', 'r', encoding='UTF-8') as kb:
+        with open(f'keyboard/{path}.json', 'r', encoding='utf-8') as kb:
             return kb.read()

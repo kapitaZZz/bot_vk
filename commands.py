@@ -9,7 +9,7 @@ Editor_access_list = ['начать', 'help', 'main_kb', 'clear', 'создат�
 ADMIN_access_list = ['начать', 'help', 'main_kb', 'clear', 'создать расслку', 'очистить текст',
                      'разослать', 'on', 'disable', 'ban', 'logs', 'default', 'рассылка']
 
-ROOT_access_list = ['начать', 'help', 'main_kb', 'clear', 'создать расслку', 'очистить текст',
+ROOT_access_list = ['начать', 'help', 'main_kb', 'clear', 'создать рассылку', 'очистить текст',
                     'разослать', 'on', 'disable', 'ban', 'logs', 'debug', 'off', 'default', 'рассылка']
 
 commands_script = [' - | command |  start dialog',

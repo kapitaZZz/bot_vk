@@ -12,7 +12,14 @@ logging.info('Starting bot.....')
 while True:
     try:
         bot = VkBot(TOKEN, group_id)
-        bot.start_bot()
+        response = bot.start_bot()
+
+        if response == "off":
+            logging.warning("Bot is shutting down...")
+            break
+        else:
+            continue
+
     except Exception:
         error = traceback.format_exc()
         print(f'Error type in MAIN.PY file - \n     {error}\n. Reloading....')

@@ -30,6 +30,7 @@ class VkBot:
         self.db = DataBase('db/database.db')
         self.handler = Handler()
         self.keyboard = Keyboard()
+        self.user_kb = self.keyboard.get_keyboard('main')
 
         self.main_keyboard = self.keyboard.get_keyboard('main')
 
@@ -82,7 +83,31 @@ class VkBot:
         self.vk.method('messages.send', {'peer_id': peer_id, 'message': msg, 'keyboard': keyboard,
                                          'attachment': attachment, 'random_id': 0})
         logging.info(f'id: {self.from_id} | name: {self.user_name} | message: {msg}')
-        print('sent')
+
+    def send_spam(self):
+        logging.info(f'Mailing started | from {self.from_id}')
+        sql = "SELECT user_id FROM users_info"
+        user_ids = [x[0] for x in self.db.select_with_fetchall(sql)]
+        spam_sql = "SELECT user_last_message FROM users_info WHERE user_id = %d" % self.from_id
+        spam_message = str(self.db.select_with_fetchone(spam_sql))
+        spam_message = spam_message[2:-3:]
+        message = f'Mailing created by {self.user_name} {self.user_last_name} \r\n {spam_message}'
+        if spam_message == '':
+            return self.send_msg(self.from_id, 'Message cannot be empty.')
+
+        for id in user_ids:
+            try:
+                if id < 0:
+                    continue
+                self.send_msg(id, message)
+                time.sleep(1)
+            except Exception:
+                spam_error_message = traceback.format.exc()
+                logging.error(f'When mailing was raised an error {spam_error_message}')
+
+        sql_reset = "UPDATE users_info SET user_last_message = 'waiting for message' WHERE user_id = %d" % self.from_id
+        self.db.query(sql_reset)
+        logging.info('Mailing completed.')
 
     def get_user_data(self):
         sql = "SELECT * FROM users_info WHERE user_id = '%s'" % self.from_id
@@ -97,27 +122,51 @@ class VkBot:
 
         return data_keys
 
+    def determinate_keyboard(self, path):
+        if path == 'main':
+            if self.user_role == "user":
+                return self.user_kb
+        return self.user_kb
+
     def start_bot(self):
         logging.info('Started main loop.')
         try:
             print("STARTING MAIN LOOP")
             for event in self.long_poll.listen():
                 if event.type == VkBotEventType.MESSAGE_NEW:
-                    self.msg = event.object['message']['text'].lower()
-                    self.from_id = event.object['message']['from_id']
-                    self.peer_id = event.object['message']['peer_id']
+                    self.msg = event.obj['message']['text'].lower()
+                    self.from_id = event.obj['message']['from_id']
+                    self.peer_id = event.obj['message']['peer_id']
                     self.user_last_name = self.get_user_last_name()
                     self.user_name = self.get_user_name()
 
                     if self.check_user_in_db() is None:
                         self.add_user_in_db()
-
+                    print(self.msg)
                     # doc = self.get_document(path='log/log.log')
                     # self.send_msg(self.peer_id, 'Log file', doc)
 
                     response = self.handler.msg_handler(self.get_user_data(), self.msg)
-                    response_text = response[0]
-                    response_kb = response[1]
+                    if response is False:
+                        continue
+
+                    if isinstance(response, tuple):
+                        response_text = response[0]
+                        response_kb = response[1]
+                    else:
+                        response_text = response
+                        response_kb = None
+
+                    if response_text == "off":
+                        return "Off"
+
+                    if response_text == 'spam':
+                        self.send_spam()
+                        continue
+
+                    self.send_msg(self.from_id, response_text, keyboard=self.determinate_keyboard(response_kb))
+                    # response_text = response[0]
+                    # response_kb = response[1]
 
         except requests.exceptions.ReadTimeout:
             connection_error = traceback.format_exc()
